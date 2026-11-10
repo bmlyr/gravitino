@@ -23,34 +23,38 @@ import org.apache.gravitino.credential.AwsPodIdentityCredential;
 import org.apache.gravitino.credential.CredentialProviderDelegator;
 
 /**
- * AWS EKS Pod Identity credential provider that supports both basic Pod Identity credentials and
- * fine-grained path-based access control using AWS session policies.
+ * AWS EKS Pod Identity credential provider that vends path-scoped S3 credentials.
  *
- * <p>This provider operates in two modes:
+ * <p>For path-based credential contexts (e.g., table access with vended credentials), the provider
+ * uses the credentials that the EKS Pod Identity agent hands to the Gravitino pod to call {@code
+ * AssumeRole} on the role configured by {@code s3-role-arn}, with a session policy restricted to
+ * the requested S3 paths. Session policies can only reduce (not expand) the permissions already
+ * granted by that role.
  *
- * <ul>
- *   <li><b>Basic Pod Identity mode</b>: For non-path-based credential contexts, returns credentials
- *       with full permissions of the IAM role associated with the Kubernetes service account.
- *   <li><b>Fine-grained mode</b>: For path-based credential contexts (e.g., table access with
- *       vended credentials), uses AWS session policies to restrict permissions to specific S3 paths
- * </ul>
+ * <p>Catalog-level requests vend nothing: they provide no paths to scope a session policy to, and
+ * the pod's own credentials are never handed out.
  *
- * <p>The fine-grained mode leverages AWS session policies with AssumeRole to create temporary
- * credentials with restricted permissions. Session policies can only reduce (not expand) the
- * permissions already granted by the IAM role.
- *
- * <p>Prerequisites for fine-grained mode:
+ * <p>Prerequisites:
  *
  * <ul>
- *   <li>EKS cluster with Pod Identity agent installed and configured
- *   <li>IAM role associated with the Kubernetes service account
- *   <li>Target IAM role configured to allow assumption from the Pod Identity role
- *   <li>Optional: s3-role-arn for assuming different role (if not provided, assumes the role ARN
- *       specified in s3-role-arn)
+ *   <li>EKS cluster with the EKS Pod Identity agent installed, and an EKS Pod Identity association
+ *       for the Kubernetes service account of the Gravitino pod
+ *   <li>{@code s3-role-arn} set to the role to assume
+ *   <li>That role's trust policy allows both {@code sts:AssumeRole} and {@code sts:TagSession} from
+ *       the EKS Pod Identity role, because EKS Pod Identity credentials carry transitive session
+ *       tags
+ *   <li>Optional: {@code s3-external-id} when that trust policy requires an external ID
  * </ul>
  */
 public class AwsPodIdentityCredentialProvider
     extends CredentialProviderDelegator<AwsPodIdentityCredential> {
+
+  @Override
+  public boolean supportsScheme(String scheme) {
+    return "s3".equalsIgnoreCase(scheme)
+        || "s3a".equalsIgnoreCase(scheme)
+        || "s3n".equalsIgnoreCase(scheme);
+  }
 
   @Override
   public String credentialType() {

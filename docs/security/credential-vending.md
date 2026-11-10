@@ -22,7 +22,7 @@ Gravitino credential vending is used to generate temporary or static credentials
 
 S3 is Amazon S3, OSS is Alibaba Cloud OSS, GCS is Google Cloud Storage, ADLS is Azure Data Lake Storage, and COS is Tencent Cloud COS. The Gravitino Spark, Flink, and Trino connectors consume vended credentials automatically for these catalogs, except that the Trino Hive connector does not consume OSS credentials. For Iceberg catalogs without a `REST` backend that vends credentials, the Flink connector receives only static credentials, see [Flink Iceberg credential vending](../flink-connector/flink-catalog-iceberg.md#credential-vending).
 
-Token providers (`s3-token`, `oss-token`, `gcs-token`, `adls-token`, and `cos-token`) and `aws-irsa` scope credentials to a path, so only Fileset and Iceberg catalogs support them. Other catalogs vend static keys only, such as `s3-secret-key`, `oss-secret-key`, and `azure-account-key`. Creating or altering such a catalog with one of these providers fails.
+Token providers (`s3-token`, `oss-token`, `gcs-token`, `adls-token`, and `cos-token`), `aws-irsa`, and `aws-pod-identity` scope credentials to a path, so only Fileset and Iceberg catalogs support them. Other catalogs vend static keys only, such as `s3-secret-key`, `oss-secret-key`, and `azure-account-key`. Creating or altering such a catalog with one of these providers fails.
 
 ## Quick Start
 
@@ -109,6 +109,7 @@ Catalogs defined in `gravitino.conf` are not registered in a metalake, so Gravit
 |----------------------|---------|------------------------------------------------------------|
 | `s3-token`           | S3      | Temporary STS credentials, scoped to the table path        |
 | `aws-irsa`           | S3      | Credentials from an IAM role for service accounts, for EKS |
+| `aws-pod-identity`   | S3      | Credentials from an EKS Pod Identity association, for EKS  |
 | `s3-secret-key`      | S3      | The configured static access key and secret                |
 | `oss-token`          | OSS     | Temporary STS credentials, scoped to the table path        |
 | `oss-secret-key`     | OSS     | The configured static access key and secret                |
@@ -141,7 +142,7 @@ JDBC catalogs additionally infer `jdbc-user-password` from `jdbc-user` and `jdbc
 
 The inferred provider list is returned as the catalog's `credential-providers` property when the catalog is loaded, so clients such as the Spark connector see the same list the server vends credentials with. Only the provider names are returned, never the credential values.
 
-Four providers have no inference rule and must always be set explicitly: `s3-token`, `oss-token`, `adls-token`, and `aws-irsa`. In particular, setting `s3-role-arn` without `credential-providers` does not enable `s3-token`. The catalog falls back to `s3-secret-key` and vends the static access key instead, which is long-lived and not scoped to the table path. Set `credential-providers` explicitly whenever you want token-based vending.
+Five providers have no inference rule and must always be set explicitly: `s3-token`, `oss-token`, `adls-token`, `aws-irsa`, and `aws-pod-identity`. In particular, setting `s3-role-arn` without `credential-providers` does not enable `s3-token`. The catalog falls back to `s3-secret-key` and vends the static access key instead, which is long-lived and not scoped to the table path. Set `credential-providers` explicitly whenever you want token-based vending.
 
 ### Static providers and `getCredentials` privileges
 
@@ -153,7 +154,8 @@ Gravitino table-level grants or denies when used directly against the source.
 
 Fileset credential authorization remains path-based. Static fileset credentials may still
 have broader source access than the requested path, so prefer short-lived scoped providers
-(`s3-token`, `oss-token`, `adls-token`, `gcs-token`, `cos-token`, `aws-irsa`) when available.
+(`s3-token`, `oss-token`, `adls-token`, `gcs-token`, `cos-token`, `aws-irsa`, `aws-pod-identity`)
+when available.
 Do not grant fileset access backed by unrestricted static accounts to untrusted principals.
 
 ## S3
@@ -225,6 +227,43 @@ For path-based requests, Gravitino always scopes the credentials with a session 
 The selected role needs the same permission policy as `s3-token` above. Its trust policy must allow `sts:AssumeRoleWithWebIdentity` from the pod's Kubernetes service account identity.
 
 IRSA itself must already be configured on the pod's Kubernetes service account. When it is, EKS injects a signed service account token into the pod and sets `AWS_WEB_IDENTITY_TOKEN_FILE` to its path, which is what the AWS SDK uses to obtain credentials. If vending fails, check that this variable is present in the pod.
+
+### `aws-pod-identity`
+
+For Gravitino running on EKS with [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html). Gravitino uses the credentials that the EKS Pod Identity agent hands to its pod to call AssumeRole, so no static keys and no OIDC provider are involved.
+
+| Property                    | Description                                                                                                  | Default value | Required |
+|-----------------------------|--------------------------------------------------------------------------------------------------------------|---------------|----------|
+| `s3-role-arn`               | ARN of the role to assume.                                                                                   | (none)        | Yes      |
+| `s3-region`                 | AWS region for STS operations.                                                                               | (none)        | No       |
+| `s3-token-expire-in-secs`   | Session lifetime of the vended credentials. Cannot exceed 3600, see below.                                   | 3600          | No       |
+| `s3-token-service-endpoint` | Alternative STS endpoint.                                                                                    | (none)        | No       |
+| `s3-external-id`            | External ID passed to AssumeRole, when the trust policy of the role requires one.                            | (none)        | No       |
+
+For path-based requests, Gravitino always scopes the credentials with a session policy covering the requested data, metadata, and write locations. Catalog-level requests do not vend `aws-pod-identity` credentials because they provide no paths for a session policy, and the pod's own credentials are never returned to clients.
+
+The role in `s3-role-arn` needs the same permission policy as `s3-token` above. Its trust policy must allow the role of the EKS Pod Identity association to assume it, with both `sts:AssumeRole` and `sts:TagSession`. EKS Pod Identity attaches transitive session tags (such as `eks-cluster-arn` and `kubernetes-namespace`) to the pod's credentials, and STS rejects an AssumeRole call that carries session tags unless `sts:TagSession` is allowed:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::{account_id}:role/{eks_pod_identity_role}" },
+    "Action": ["sts:AssumeRole", "sts:TagSession"]
+  }]
+}
+```
+
+The role of the EKS Pod Identity association needs a permission policy that allows the same two actions on the role in `s3-role-arn`.
+
+Keep these limits in mind:
+
+- The pod's credentials are role session credentials, so this AssumeRole call is role chaining, which AWS limits to one hour. Gravitino rejects an `s3-token-expire-in-secs` above 3600 for this provider, whatever the maximum session duration of the role.
+- The session tags count against the packed size limit of the session policy. If vending fails with `PackedPolicyTooLarge`, disable session tags on the EKS Pod Identity association.
+- EKS Pod Identity is only available on Linux Amazon EC2 nodes. It is not supported on Fargate or Windows nodes.
+
+The EKS Pod Identity agent must be installed on the cluster, and the Kubernetes service account of the Gravitino pod must have an EKS Pod Identity association. When it does, EKS sets `AWS_CONTAINER_CREDENTIALS_FULL_URI` and `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE` in the pod, which is what the AWS SDK uses to obtain credentials. If vending fails, check that these variables are present in the pod. If the pod uses an HTTP proxy, add the agent address `169.254.170.23` to `NO_PROXY`.
 
 ### `s3-secret-key`
 
@@ -465,7 +504,7 @@ For a catalog, `{type}` is `catalog` and `{full_name}` is the catalog name:
 GET /api/metalakes/{metalake}/objects/catalog/{catalog}/credentials
 ```
 
-The Gravitino Spark and Flink connectors call this for you and inject the returned credentials, so no client configuration is needed. These credentials are catalog-level and are not refreshed. Path-based providers such as `s3-token` and `aws-irsa` vend nothing at catalog level.
+The Gravitino Spark and Flink connectors call this for you and inject the returned credentials, so no client configuration is needed. These credentials are catalog-level and are not refreshed. Path-based providers such as `s3-token`, `aws-irsa`, and `aws-pod-identity` vend nothing at catalog level.
 
 ### Read or Write Scope
 

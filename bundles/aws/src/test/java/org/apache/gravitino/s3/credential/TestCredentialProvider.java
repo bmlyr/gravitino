@@ -48,4 +48,14 @@ public class TestCredentialProvider {
         AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE,
         awsPodIdentityCredentialProvider.credentialType());
   }
+
+  @Test
+  void testPodIdentityProviderSupportsOnlyS3Schemes() {
+    AwsPodIdentityCredentialProvider provider = new AwsPodIdentityCredentialProvider();
+    Assertions.assertTrue(provider.supportsScheme("s3"));
+    Assertions.assertTrue(provider.supportsScheme("S3A"));
+    Assertions.assertTrue(provider.supportsScheme("s3n"));
+    Assertions.assertFalse(provider.supportsScheme("gs"));
+    Assertions.assertFalse(provider.supportsScheme("oss"));
+  }
 }

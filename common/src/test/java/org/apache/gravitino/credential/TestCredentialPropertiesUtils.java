@@ -56,6 +56,29 @@ public class TestCredentialPropertiesUtils {
   }
 
   @Test
+  void testToIcebergPropertiesForAwsRoleBasedCredentials() {
+    Map<String, String> expectedProperties =
+        ImmutableMap.of(
+            CredentialPropertyUtils.ICEBERG_S3_ACCESS_KEY_ID,
+            "key",
+            CredentialPropertyUtils.ICEBERG_S3_SECRET_ACCESS_KEY,
+            "secret",
+            CredentialPropertyUtils.ICEBERG_S3_TOKEN,
+            "token",
+            CredentialPropertyUtils.ICEBERG_S3_TOKEN_EXPIRES_AT_MS,
+            "100");
+
+    Assertions.assertEquals(
+        expectedProperties,
+        CredentialPropertyUtils.toIcebergProperties(
+            new AwsIrsaCredential("key", "secret", "token", 100)));
+    Assertions.assertEquals(
+        expectedProperties,
+        CredentialPropertyUtils.toIcebergProperties(
+            new AwsPodIdentityCredential("key", "secret", "token", 100)));
+  }
+
+  @Test
   void testToIcebergPropertiesForOSS() {
     OSSTokenCredential ossTokenCredential =
         new OSSTokenCredential("key", "secret", "security-token", 100);

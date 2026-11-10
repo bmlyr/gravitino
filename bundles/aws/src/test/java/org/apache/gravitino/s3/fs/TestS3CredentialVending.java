@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.gravitino.catalog.hadoop.fs.GravitinoFileSystemCredentialsProvider;
 import org.apache.gravitino.catalog.hadoop.fs.InMemoryFileSystemCredentialsProvider;
 import org.apache.gravitino.credential.AwsIrsaCredential;
+import org.apache.gravitino.credential.AwsPodIdentityCredential;
 import org.apache.gravitino.credential.Credential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
 import org.apache.gravitino.credential.S3TokenCredential;
@@ -75,6 +76,31 @@ public class TestS3CredentialVending {
     Assertions.assertEquals("access-key", actual.getAWSAccessKeyId());
     Assertions.assertEquals("secret-key", actual.getAWSSecretKey());
     Assertions.assertEquals("session-token", ((AWSSessionCredentials) actual).getSessionToken());
+  }
+
+  @Test
+  void testPodIdentityCredential() {
+    AwsPodIdentityCredential credential =
+        new AwsPodIdentityCredential("access-key", "secret-key", "session-token", EXPIRATION_TIME);
+
+    AWSCredentials actual = readCredential(credential);
+
+    Assertions.assertTrue(actual instanceof AWSSessionCredentials);
+    Assertions.assertEquals("access-key", actual.getAWSAccessKeyId());
+    Assertions.assertEquals("secret-key", actual.getAWSSecretKey());
+    Assertions.assertEquals("session-token", ((AWSSessionCredentials) actual).getSessionToken());
+  }
+
+  @Test
+  void testDynamicCredentialTakesPrecedenceOverStaticOne() {
+    Credential podIdentityCredential =
+        new AwsPodIdentityCredential("access-key", "secret-key", "session-token", EXPIRATION_TIME);
+    Credential secretKeyCredential = new S3SecretKeyCredential("access-key", "secret-key");
+
+    Assertions.assertSame(
+        podIdentityCredential,
+        S3Utils.getSuitableCredential(
+            new Credential[] {secretKeyCredential, podIdentityCredential}));
   }
 
   private AWSCredentials readCredential(Credential credential) {

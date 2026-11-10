@@ -20,6 +20,7 @@
 package org.apache.gravitino.s3.fs;
 
 import org.apache.gravitino.credential.AwsIrsaCredential;
+import org.apache.gravitino.credential.AwsPodIdentityCredential;
 import org.apache.gravitino.credential.Credential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
 import org.apache.gravitino.credential.S3TokenCredential;
@@ -42,6 +43,11 @@ public class S3Utils {
     }
     for (Credential credential : credentials) {
       if (credential instanceof AwsIrsaCredential) {
+        return credential;
+      }
+    }
+    for (Credential credential : credentials) {
+      if (credential instanceof AwsPodIdentityCredential) {
         return credential;
       }
     }
