@@ -51,6 +51,37 @@ public class TestCredentialFactory {
   }
 
   @Test
+  void testAwsEksPodIdentityCredential() {
+    Map<String, String> credentialInfo =
+        ImmutableMap.of(
+            AwsEksPodIdentityCredential.ACCESS_KEY_ID,
+            "accessKeyId",
+            AwsEksPodIdentityCredential.SECRET_ACCESS_KEY,
+            "secretAccessKey",
+            AwsEksPodIdentityCredential.SESSION_TOKEN,
+            "token");
+    long expireTime = 1000;
+    Credential credential =
+        CredentialFactory.create(
+            AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
+            credentialInfo,
+            expireTime);
+    Assertions.assertEquals(
+        AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
+        credential.credentialType());
+    Assertions.assertInstanceOf(AwsEksPodIdentityCredential.class, credential);
+    AwsEksPodIdentityCredential podIdentityCredential = (AwsEksPodIdentityCredential) credential;
+    Assertions.assertEquals("accessKeyId", podIdentityCredential.accessKeyId());
+    Assertions.assertEquals("secretAccessKey", podIdentityCredential.secretAccessKey());
+    Assertions.assertEquals("token", podIdentityCredential.sessionToken());
+    Assertions.assertEquals(expireTime, podIdentityCredential.expireTimeInMs());
+
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () -> new AwsEksPodIdentityCredential("accessKeyId", "secretAccessKey", "token", 0));
+  }
+
+  @Test
   void testS3TokenCredential() {
     Map<String, String> s3TokenCredentialInfo =
         ImmutableMap.of(

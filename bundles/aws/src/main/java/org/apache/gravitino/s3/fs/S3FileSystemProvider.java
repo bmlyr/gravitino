@@ -39,6 +39,7 @@ import java.util.Map;
 import org.apache.gravitino.catalog.hadoop.fs.FileSystemProvider;
 import org.apache.gravitino.catalog.hadoop.fs.FileSystemUtils;
 import org.apache.gravitino.catalog.hadoop.fs.SupportsCredentialVending;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.AwsIrsaCredential;
 import org.apache.gravitino.credential.Credential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
@@ -93,7 +94,8 @@ public class S3FileSystemProvider implements FileSystemProvider, SupportsCredent
     Map<String, String> result = Maps.newHashMap();
     if (credential instanceof S3SecretKeyCredential
         || credential instanceof S3TokenCredential
-        || credential instanceof AwsIrsaCredential) {
+        || credential instanceof AwsIrsaCredential
+        || credential instanceof AwsEksPodIdentityCredential) {
       result.put(
           Constants.AWS_CREDENTIALS_PROVIDER, S3CredentialsProvider.class.getCanonicalName());
     }

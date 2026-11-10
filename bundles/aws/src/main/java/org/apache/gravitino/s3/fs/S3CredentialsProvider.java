@@ -26,6 +26,7 @@ import com.amazonaws.auth.BasicSessionCredentials;
 import java.net.URI;
 import org.apache.gravitino.catalog.hadoop.fs.FileSystemUtils;
 import org.apache.gravitino.catalog.hadoop.fs.GravitinoFileSystemCredentialsProvider;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.AwsIrsaCredential;
 import org.apache.gravitino.credential.Credential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
@@ -83,6 +84,14 @@ public class S3CredentialsProvider implements AWSCredentialsProvider {
               awsIrsaCredential.accessKeyId(),
               awsIrsaCredential.secretAccessKey(),
               awsIrsaCredential.sessionToken());
+    } else if (credential instanceof AwsEksPodIdentityCredential) {
+      AwsEksPodIdentityCredential awsEksPodIdentityCredential =
+          (AwsEksPodIdentityCredential) credential;
+      basicSessionCredentials =
+          new BasicSessionCredentials(
+              awsEksPodIdentityCredential.accessKeyId(),
+              awsEksPodIdentityCredential.secretAccessKey(),
+              awsEksPodIdentityCredential.sessionToken());
     }
 
     if (credential.expireTimeInMs() > 0) {

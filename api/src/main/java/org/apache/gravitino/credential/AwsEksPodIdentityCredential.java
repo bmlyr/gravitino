@@ -25,9 +25,9 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /** Generic AWS EKS Pod Identity credential. */
-public class AwsPodIdentityCredential implements Credential {
+public class AwsEksPodIdentityCredential implements Credential {
   /** The credential type for AWS EKS Pod Identity credentials. */
-  public static final String AWS_POD_IDENTITY_CREDENTIAL_TYPE = "aws-pod-identity";
+  public static final String AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE = "aws-eks-pod-identity";
   /** The key for AWS access key ID in credential info. */
   public static final String ACCESS_KEY_ID = "access-key-id";
   /** The key for AWS secret access key in credential info. */
@@ -48,9 +48,9 @@ public class AwsPodIdentityCredential implements Credential {
    * @param sessionToken the AWS session token
    * @param expireTimeInMs the expiration time in milliseconds
    */
-  public AwsPodIdentityCredential(
+  public AwsEksPodIdentityCredential(
       String accessKeyId, String secretAccessKey, String sessionToken, long expireTimeInMs) {
-    validate(accessKeyId, secretAccessKey, sessionToken);
+    validate(accessKeyId, secretAccessKey, sessionToken, expireTimeInMs);
     this.accessKeyId = accessKeyId;
     this.secretAccessKey = secretAccessKey;
     this.sessionToken = sessionToken;
@@ -58,11 +58,11 @@ public class AwsPodIdentityCredential implements Credential {
   }
 
   /** Default constructor for AWS EKS Pod Identity credential. */
-  public AwsPodIdentityCredential() {}
+  public AwsEksPodIdentityCredential() {}
 
   @Override
   public String credentialType() {
-    return AWS_POD_IDENTITY_CREDENTIAL_TYPE;
+    return AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE;
   }
 
   @Override
@@ -84,7 +84,7 @@ public class AwsPodIdentityCredential implements Credential {
     String accessKeyId = credentialInfo.get(ACCESS_KEY_ID);
     String secretAccessKey = credentialInfo.get(SECRET_ACCESS_KEY);
     String sessionToken = credentialInfo.get(SESSION_TOKEN);
-    validate(accessKeyId, secretAccessKey, sessionToken);
+    validate(accessKeyId, secretAccessKey, sessionToken, expireTimeInMs);
     this.accessKeyId = accessKeyId;
     this.secretAccessKey = secretAccessKey;
     this.sessionToken = sessionToken;
@@ -118,12 +118,16 @@ public class AwsPodIdentityCredential implements Credential {
     return sessionToken;
   }
 
-  private void validate(String accessKeyId, String secretAccessKey, String sessionToken) {
+  private void validate(
+      String accessKeyId, String secretAccessKey, String sessionToken, long expireTimeInMs) {
     Preconditions.checkArgument(
         StringUtils.isNotBlank(accessKeyId), "Access key Id should not be empty");
     Preconditions.checkArgument(
         StringUtils.isNotBlank(secretAccessKey), "Secret access key should not be empty");
     Preconditions.checkArgument(
         StringUtils.isNotBlank(sessionToken), "Session token should not be empty");
+    Preconditions.checkArgument(
+        expireTimeInMs > 0,
+        "The expiration time of AwsEksPodIdentityCredential should be greater than 0");
   }
 }

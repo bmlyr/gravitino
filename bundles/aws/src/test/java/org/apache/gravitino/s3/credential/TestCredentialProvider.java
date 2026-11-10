@@ -19,8 +19,8 @@
 
 package org.apache.gravitino.s3.credential;
 
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.AwsIrsaCredential;
-import org.apache.gravitino.credential.AwsPodIdentityCredential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
 import org.apache.gravitino.credential.S3TokenCredential;
 import org.junit.jupiter.api.Assertions;
@@ -42,10 +42,20 @@ public class TestCredentialProvider {
     Assertions.assertEquals(
         AwsIrsaCredential.AWS_IRSA_CREDENTIAL_TYPE, awsIrsaCredentialProvider.credentialType());
 
-    AwsPodIdentityCredentialProvider awsPodIdentityCredentialProvider =
-        new AwsPodIdentityCredentialProvider();
+    AwsEksPodIdentityCredentialProvider awsEksPodIdentityCredentialProvider =
+        new AwsEksPodIdentityCredentialProvider();
     Assertions.assertEquals(
-        AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE,
-        awsPodIdentityCredentialProvider.credentialType());
+        AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
+        awsEksPodIdentityCredentialProvider.credentialType());
+  }
+
+  @Test
+  void testEksPodIdentityProviderSupportsOnlyS3Schemes() {
+    AwsEksPodIdentityCredentialProvider provider = new AwsEksPodIdentityCredentialProvider();
+    Assertions.assertTrue(provider.supportsScheme("s3"));
+    Assertions.assertTrue(provider.supportsScheme("S3A"));
+    Assertions.assertTrue(provider.supportsScheme("s3n"));
+    Assertions.assertFalse(provider.supportsScheme("gs"));
+    Assertions.assertFalse(provider.supportsScheme("oss"));
   }
 }

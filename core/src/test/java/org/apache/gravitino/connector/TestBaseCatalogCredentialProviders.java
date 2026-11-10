@@ -28,6 +28,7 @@ import org.apache.gravitino.Catalog;
 import org.apache.gravitino.Namespace;
 import org.apache.gravitino.connector.capability.Capability;
 import org.apache.gravitino.credential.ADLSTokenCredential;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.AwsIrsaCredential;
 import org.apache.gravitino.credential.COSTokenCredential;
 import org.apache.gravitino.credential.CredentialConstants;
@@ -84,6 +85,7 @@ public class TestBaseCatalogCredentialProviders {
         ImmutableSet.of(
             S3TokenCredential.S3_TOKEN_CREDENTIAL_TYPE,
             AwsIrsaCredential.AWS_IRSA_CREDENTIAL_TYPE,
+            AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
             OSSTokenCredential.OSS_TOKEN_CREDENTIAL_TYPE,
             GCSTokenCredential.GCS_TOKEN_CREDENTIAL_TYPE,
             ADLSTokenCredential.ADLS_TOKEN_CREDENTIAL_TYPE,
