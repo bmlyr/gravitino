@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.gravitino.credential.AwsPodIdentityCredential;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.PathBasedCredentialContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ import software.amazon.awssdk.policybuilder.iam.IamPolicy;
 import software.amazon.awssdk.policybuilder.iam.IamResource;
 import software.amazon.awssdk.policybuilder.iam.IamStatement;
 
-class TestAwsPodIdentityCredentialGenerator {
+class TestAwsEksPodIdentityCredentialGenerator {
 
   private HttpServer server;
   private AtomicReference<String> requestBody;
@@ -76,7 +76,7 @@ class TestAwsPodIdentityCredentialGenerator {
 
   @Test
   void catalogRequestDoesNotVendUnscopedCredentials() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
       assertNull(generator.generate(() -> "test-user"));
     }
@@ -84,11 +84,11 @@ class TestAwsPodIdentityCredentialGenerator {
   }
 
   @Test
-  void pathRequestAssumesRoleWithPodIdentityCredentialsAndSessionPolicy() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+  void pathRequestAssumesRoleWithEksPodIdentityCredentialsAndSessionPolicy() throws IOException {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
 
-      AwsPodIdentityCredential credential = generator.generate(pathContext("test-user"));
+      AwsEksPodIdentityCredential credential = generator.generate(pathContext("test-user"));
 
       assertEquals("access-key", credential.accessKeyId());
       assertEquals("secret-key", credential.secretAccessKey());
@@ -113,7 +113,7 @@ class TestAwsPodIdentityCredentialGenerator {
     Map<String, String> properties = createProperties();
     properties.put("s3-external-id", "external-id");
 
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(properties);
       generator.generate(pathContext("test-user"));
     }
@@ -125,7 +125,7 @@ class TestAwsPodIdentityCredentialGenerator {
   void roleSessionNameIsValidForLongOrUnusualUserNames() throws IOException {
     String userName = "hive/host.example.com:spark user " + StringUtils.repeat("a", 100);
 
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
       generator.generate(pathContext(userName));
     }
@@ -145,7 +145,7 @@ class TestAwsPodIdentityCredentialGenerator {
     Map<String, String> invalid = createProperties();
     invalid.put("s3-role-arn", "not-an-arn");
 
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       IllegalArgumentException exception =
           assertThrows(IllegalArgumentException.class, () -> generator.initialize(missing));
       assertTrue(exception.getMessage().contains("s3-role-arn is required"));
@@ -159,7 +159,7 @@ class TestAwsPodIdentityCredentialGenerator {
     Map<String, String> properties = createProperties();
     properties.put("s3-token-expire-in-secs", "7200");
 
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       IllegalArgumentException exception =
           assertThrows(IllegalArgumentException.class, () -> generator.initialize(properties));
       assertTrue(exception.getMessage().contains("role chaining"));
@@ -168,7 +168,7 @@ class TestAwsPodIdentityCredentialGenerator {
 
   @Test
   void generateFailsWithoutLocations() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
       PathBasedCredentialContext context =
           new PathBasedCredentialContext(
@@ -181,7 +181,7 @@ class TestAwsPodIdentityCredentialGenerator {
 
   @Test
   void sessionPolicyForReadOnlyLocation() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
 
       IamPolicy policy =
@@ -204,7 +204,7 @@ class TestAwsPodIdentityCredentialGenerator {
 
   @Test
   void sessionPolicyForWriteLocation() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
 
       IamPolicy policy =
@@ -220,7 +220,7 @@ class TestAwsPodIdentityCredentialGenerator {
 
   @Test
   void sessionPolicyKeepsBucketNameThatIsNotAValidHostname() throws IOException {
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(createProperties());
 
       IamPolicy policy =
@@ -242,7 +242,7 @@ class TestAwsPodIdentityCredentialGenerator {
     properties.put("s3-region", "cn-north-1");
     properties.put("s3-role-arn", "arn:aws-cn:iam::123456789012:role/test-role");
 
-    try (AwsPodIdentityCredentialGenerator generator = newGenerator()) {
+    try (AwsEksPodIdentityCredentialGenerator generator = newGenerator()) {
       generator.initialize(properties);
 
       IamPolicy policy =
@@ -255,11 +255,11 @@ class TestAwsPodIdentityCredentialGenerator {
     }
   }
 
-  private static AwsPodIdentityCredentialGenerator newGenerator() {
+  private static AwsEksPodIdentityCredentialGenerator newGenerator() {
     AwsCredentialsProvider podCredentials =
         StaticCredentialsProvider.create(
             AwsSessionCredentials.create("pod-access-key", "pod-secret-key", "pod-session-token"));
-    return new AwsPodIdentityCredentialGenerator(() -> podCredentials);
+    return new AwsEksPodIdentityCredentialGenerator(() -> podCredentials);
   }
 
   private Map<String, String> createProperties() {

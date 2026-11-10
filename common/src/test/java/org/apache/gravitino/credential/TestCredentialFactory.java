@@ -51,23 +51,26 @@ public class TestCredentialFactory {
   }
 
   @Test
-  void testAwsPodIdentityCredential() {
+  void testAwsEksPodIdentityCredential() {
     Map<String, String> credentialInfo =
         ImmutableMap.of(
-            AwsPodIdentityCredential.ACCESS_KEY_ID,
+            AwsEksPodIdentityCredential.ACCESS_KEY_ID,
             "accessKeyId",
-            AwsPodIdentityCredential.SECRET_ACCESS_KEY,
+            AwsEksPodIdentityCredential.SECRET_ACCESS_KEY,
             "secretAccessKey",
-            AwsPodIdentityCredential.SESSION_TOKEN,
+            AwsEksPodIdentityCredential.SESSION_TOKEN,
             "token");
     long expireTime = 1000;
     Credential credential =
         CredentialFactory.create(
-            AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE, credentialInfo, expireTime);
+            AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
+            credentialInfo,
+            expireTime);
     Assertions.assertEquals(
-        AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE, credential.credentialType());
-    Assertions.assertInstanceOf(AwsPodIdentityCredential.class, credential);
-    AwsPodIdentityCredential podIdentityCredential = (AwsPodIdentityCredential) credential;
+        AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
+        credential.credentialType());
+    Assertions.assertInstanceOf(AwsEksPodIdentityCredential.class, credential);
+    AwsEksPodIdentityCredential podIdentityCredential = (AwsEksPodIdentityCredential) credential;
     Assertions.assertEquals("accessKeyId", podIdentityCredential.accessKeyId());
     Assertions.assertEquals("secretAccessKey", podIdentityCredential.secretAccessKey());
     Assertions.assertEquals("token", podIdentityCredential.sessionToken());
@@ -75,7 +78,7 @@ public class TestCredentialFactory {
 
     Assertions.assertThrows(
         IllegalArgumentException.class,
-        () -> new AwsPodIdentityCredential("accessKeyId", "secretAccessKey", "token", 0));
+        () -> new AwsEksPodIdentityCredential("accessKeyId", "secretAccessKey", "token", 0));
   }
 
   @Test

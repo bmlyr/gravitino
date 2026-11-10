@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.gravitino.credential.AwsPodIdentityCredential;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.CredentialContext;
 import org.apache.gravitino.credential.CredentialGenerator;
 import org.apache.gravitino.credential.PathBasedCredentialContext;
@@ -56,8 +56,8 @@ import software.amazon.awssdk.utils.SdkAutoCloseable;
  * AssumeRole} on the role configured by {@code s3-role-arn}, with a session policy restricted to
  * the requested locations.
  */
-public class AwsPodIdentityCredentialGenerator
-    implements CredentialGenerator<AwsPodIdentityCredential> {
+public class AwsEksPodIdentityCredentialGenerator
+    implements CredentialGenerator<AwsEksPodIdentityCredential> {
 
   @VisibleForTesting static final String ROLE_SESSION_NAME_PREFIX = "gravitino_eks_pod_identity_";
 
@@ -77,12 +77,12 @@ public class AwsPodIdentityCredentialGenerator
   private boolean listLocationPrefix;
 
   /** Creates an AWS EKS Pod Identity credential generator. */
-  public AwsPodIdentityCredentialGenerator() {
+  public AwsEksPodIdentityCredentialGenerator() {
     this(() -> ContainerCredentialsProvider.builder().build());
   }
 
   @VisibleForTesting
-  AwsPodIdentityCredentialGenerator(
+  AwsEksPodIdentityCredentialGenerator(
       Supplier<AwsCredentialsProvider> baseCredentialsProviderSupplier) {
     this.baseCredentialsProviderSupplier = Objects.requireNonNull(baseCredentialsProviderSupplier);
   }
@@ -101,7 +101,7 @@ public class AwsPodIdentityCredentialGenerator
   }
 
   @Override
-  public AwsPodIdentityCredential generate(CredentialContext context) {
+  public AwsEksPodIdentityCredential generate(CredentialContext context) {
     if (!(context instanceof PathBasedCredentialContext)) {
       // Without paths there is nothing to scope a session policy to, and the pod's own
       // credentials must never be handed out.
@@ -116,7 +116,7 @@ public class AwsPodIdentityCredentialGenerator
 
     IamPolicy sessionPolicy = createSessionPolicy(readLocations, writeLocations);
     Credentials s3Token = assumeRoleWithSessionPolicy(userName, sessionPolicy);
-    return new AwsPodIdentityCredential(
+    return new AwsEksPodIdentityCredential(
         s3Token.accessKeyId(),
         s3Token.secretAccessKey(),
         s3Token.sessionToken(),
@@ -149,7 +149,7 @@ public class AwsPodIdentityCredentialGenerator
         StringUtils.isNotBlank(configRoleArn),
         "%s is required for the %s credential provider",
         S3CredentialConfig.S3_ROLE_ARN.getKey(),
-        AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE);
+        AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE);
     Preconditions.checkArgument(
         configRoleArn.startsWith("arn:aws"), "Invalid role ARN format: %s", configRoleArn);
     return configRoleArn;
@@ -162,7 +162,7 @@ public class AwsPodIdentityCredentialGenerator
             + "Identity credentials is role chaining, got: %s",
         S3CredentialConfig.S3_TOKEN_EXPIRE_IN_SECS.getKey(),
         MAX_ROLE_CHAINING_DURATION_SECS,
-        AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE,
+        AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
         tokenExpireSecs);
     return tokenExpireSecs;
   }

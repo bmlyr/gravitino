@@ -38,7 +38,7 @@ public class CredentialUtils {
       ImmutableSet.of(
           S3TokenCredential.S3_TOKEN_CREDENTIAL_TYPE,
           AwsIrsaCredential.AWS_IRSA_CREDENTIAL_TYPE,
-          AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE,
+          AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE,
           OSSTokenCredential.OSS_TOKEN_CREDENTIAL_TYPE,
           GCSTokenCredential.GCS_TOKEN_CREDENTIAL_TYPE,
           ADLSTokenCredential.ADLS_TOKEN_CREDENTIAL_TYPE,

@@ -19,7 +19,7 @@
 
 package org.apache.gravitino.s3.credential;
 
-import org.apache.gravitino.credential.AwsPodIdentityCredential;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.CredentialProviderDelegator;
 
 /**
@@ -46,8 +46,8 @@ import org.apache.gravitino.credential.CredentialProviderDelegator;
  *   <li>Optional: {@code s3-external-id} when that trust policy requires an external ID
  * </ul>
  */
-public class AwsPodIdentityCredentialProvider
-    extends CredentialProviderDelegator<AwsPodIdentityCredential> {
+public class AwsEksPodIdentityCredentialProvider
+    extends CredentialProviderDelegator<AwsEksPodIdentityCredential> {
 
   @Override
   public boolean supportsScheme(String scheme) {
@@ -58,11 +58,11 @@ public class AwsPodIdentityCredentialProvider
 
   @Override
   public String credentialType() {
-    return AwsPodIdentityCredential.AWS_POD_IDENTITY_CREDENTIAL_TYPE;
+    return AwsEksPodIdentityCredential.AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE;
   }
 
   @Override
   public String getGeneratorClassName() {
-    return "org.apache.gravitino.s3.credential.AwsPodIdentityCredentialGenerator";
+    return "org.apache.gravitino.s3.credential.AwsEksPodIdentityCredentialGenerator";
   }
 }

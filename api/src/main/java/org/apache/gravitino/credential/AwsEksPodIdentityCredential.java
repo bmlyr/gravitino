@@ -25,9 +25,9 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /** Generic AWS EKS Pod Identity credential. */
-public class AwsPodIdentityCredential implements Credential {
+public class AwsEksPodIdentityCredential implements Credential {
   /** The credential type for AWS EKS Pod Identity credentials. */
-  public static final String AWS_POD_IDENTITY_CREDENTIAL_TYPE = "aws-pod-identity";
+  public static final String AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE = "aws-eks-pod-identity";
   /** The key for AWS access key ID in credential info. */
   public static final String ACCESS_KEY_ID = "access-key-id";
   /** The key for AWS secret access key in credential info. */
@@ -48,7 +48,7 @@ public class AwsPodIdentityCredential implements Credential {
    * @param sessionToken the AWS session token
    * @param expireTimeInMs the expiration time in milliseconds
    */
-  public AwsPodIdentityCredential(
+  public AwsEksPodIdentityCredential(
       String accessKeyId, String secretAccessKey, String sessionToken, long expireTimeInMs) {
     validate(accessKeyId, secretAccessKey, sessionToken, expireTimeInMs);
     this.accessKeyId = accessKeyId;
@@ -58,11 +58,11 @@ public class AwsPodIdentityCredential implements Credential {
   }
 
   /** Default constructor for AWS EKS Pod Identity credential. */
-  public AwsPodIdentityCredential() {}
+  public AwsEksPodIdentityCredential() {}
 
   @Override
   public String credentialType() {
-    return AWS_POD_IDENTITY_CREDENTIAL_TYPE;
+    return AWS_EKS_POD_IDENTITY_CREDENTIAL_TYPE;
   }
 
   @Override
@@ -128,6 +128,6 @@ public class AwsPodIdentityCredential implements Credential {
         StringUtils.isNotBlank(sessionToken), "Session token should not be empty");
     Preconditions.checkArgument(
         expireTimeInMs > 0,
-        "The expiration time of AwsPodIdentityCredential should be greater than 0");
+        "The expiration time of AwsEksPodIdentityCredential should be greater than 0");
   }
 }

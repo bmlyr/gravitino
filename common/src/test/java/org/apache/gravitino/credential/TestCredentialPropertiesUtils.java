@@ -75,7 +75,7 @@ public class TestCredentialPropertiesUtils {
     Assertions.assertEquals(
         expectedProperties,
         CredentialPropertyUtils.toIcebergProperties(
-            new AwsPodIdentityCredential("key", "secret", "token", 100)));
+            new AwsEksPodIdentityCredential("key", "secret", "token", 100)));
   }
 
   @Test

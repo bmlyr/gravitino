@@ -25,8 +25,8 @@ import java.net.URI;
 import java.util.Map;
 import org.apache.gravitino.catalog.hadoop.fs.GravitinoFileSystemCredentialsProvider;
 import org.apache.gravitino.catalog.hadoop.fs.InMemoryFileSystemCredentialsProvider;
+import org.apache.gravitino.credential.AwsEksPodIdentityCredential;
 import org.apache.gravitino.credential.AwsIrsaCredential;
-import org.apache.gravitino.credential.AwsPodIdentityCredential;
 import org.apache.gravitino.credential.Credential;
 import org.apache.gravitino.credential.S3SecretKeyCredential;
 import org.apache.gravitino.credential.S3TokenCredential;
@@ -79,9 +79,10 @@ public class TestS3CredentialVending {
   }
 
   @Test
-  void testPodIdentityCredential() {
-    AwsPodIdentityCredential credential =
-        new AwsPodIdentityCredential("access-key", "secret-key", "session-token", EXPIRATION_TIME);
+  void testEksPodIdentityCredential() {
+    AwsEksPodIdentityCredential credential =
+        new AwsEksPodIdentityCredential(
+            "access-key", "secret-key", "session-token", EXPIRATION_TIME);
 
     AWSCredentials actual = readCredential(credential);
 
@@ -94,7 +95,8 @@ public class TestS3CredentialVending {
   @Test
   void testDynamicCredentialTakesPrecedenceOverStaticOne() {
     Credential podIdentityCredential =
-        new AwsPodIdentityCredential("access-key", "secret-key", "session-token", EXPIRATION_TIME);
+        new AwsEksPodIdentityCredential(
+            "access-key", "secret-key", "session-token", EXPIRATION_TIME);
     Credential secretKeyCredential = new S3SecretKeyCredential("access-key", "secret-key");
 
     Assertions.assertSame(
